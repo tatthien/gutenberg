@@ -1,46 +1,39 @@
 /**
  * Node dependencies.
  */
-const { execSync } = require( 'child_process' );
 const path = require( 'path' );
-const os = require( 'os' );
-const crypto = require( 'crypto' );
 const { env } = require( 'process' );
+
+/**
+ * WordPress dependencies.
+ */
+const wpEnv = require( '@wordpress/env' );
 
 /**
  * Internal dependencies
  */
 const { getArgsFromCLI } = require( '../../utils' );
 
-const args = getArgsFromCLI();
+const args = getArgsFromCLI().join( ' ' );
 
-// Plugin against which to run the tests.
-const pluginDir = env.npm_package_wp_env_plugin_dir;
+// Default to CWD basename for the plugin to run.
+const pluginDir =
+	env.npm_package_wp_env_plugin_dir || path.basename( process.cwd() );
 const localDir = env.LOCAL_DIR || 'src';
 
-// Runs the phpunit command in the phpunit Docker service,
-execSync(
-	`docker-compose run --rm phpunit phpunit -c /var/www/${ localDir }/wp-content/plugins/${ pluginDir }/phpunit.xml.dist` +
-		args.join( ' ' ),
-	{
-		cwd: getDockerComposeDir(),
-		stdio: 'inherit',
-	}
-);
-
-/**
- * Returns the directory containing the docker-compose file for our .wp-env file.
- *
- * Assumes the .wp-env.json file exists in cwd.
- *
- * Based on packages/env/lib/config.js.
- */
-function getDockerComposeDir() {
-	const configPath = path.resolve( '.wp-env.json' );
-	const pathHash = crypto
-		.createHash( 'md5' )
-		.update( configPath )
-		.digest( 'hex' );
-
-	return path.resolve( os.homedir(), '.wp-env', pathHash );
-}
+// Executes phpunit in the Docker Service.
+wpEnv
+	.run( {
+		container: 'phpunit',
+		command: [
+			`phpunit -c /var/www/${ localDir }/wp-content/plugins/${ pluginDir }/phpunit.xml.dist ${ args }`,
+		],
+		spinner: {},
+	} )
+	// eslint-disable-next-line no-console
+	.then( console.log )
+	.catch( ( { err } ) => {
+		// eslint-disable-next-line no-console
+		console.error( err );
+		process.exit( 1 );
+	} );

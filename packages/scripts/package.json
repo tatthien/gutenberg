@@ -36,6 +36,7 @@
 		"@svgr/webpack": "^5.2.0",
 		"@wordpress/babel-preset-default": "file:../babel-preset-default",
 		"@wordpress/dependency-extraction-webpack-plugin": "file:../dependency-extraction-webpack-plugin",
+		"@wordpress/env": "file:../env",
 		"@wordpress/eslint-plugin": "file:../eslint-plugin",
 		"@wordpress/jest-preset-default": "file:../jest-preset-default",
 		"@wordpress/npm-package-json-lint-config": "file:../npm-package-json-lint-config",
