@@ -142,11 +142,24 @@ module.exports = function buildDockerComposeConfig( config ) {
 				image: 'composer',
 				volumes: [ `${ config.configDirectoryPath }:/app` ],
 			},
+			phpunit: {
+				image: 'wordpressdevelop/phpunit',
+				init: true,
+				depends_on: [ 'mysql' ],
+				volumes: [
+					...developmentMounts,
+					'phpunit-uploads:/var/www/html/wp-content/uploads',
+				],
+				environment: {
+					LOCAL_DIR: 'html',
+				},
+			},
 		},
 		volumes: {
 			...( ! config.coreSource && { wordpress: {} } ),
 			...( ! config.coreSource && { 'tests-wordpress': {} } ),
 			mysql: {},
+			'phpunit-uploads': {},
 		},
 	};
 };
