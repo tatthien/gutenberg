@@ -40,9 +40,6 @@
 		},
 		"customGradient": {
 			"type": "string"
-		},
-		"padding": {
-			"type": "object"
 		}
 	}
 }
