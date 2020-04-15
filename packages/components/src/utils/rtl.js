@@ -14,7 +14,7 @@ const UPPER_RIGHT_REGEXP = new RegExp( /Right/g );
  *
  * @return {boolean} Whether document is RTL.
  */
-function getRtl() {
+export function getRtl() {
 	return !! ( document && document.documentElement.dir === 'rtl' );
 }
 
