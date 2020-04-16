@@ -23,7 +23,7 @@ function getRtl() {
  *
  * @return {boolean} Whether document is RTL.
  */
-export function useRtl() {
+export function useRTL() {
 	return getRtl();
 }
 
