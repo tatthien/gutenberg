@@ -110,6 +110,28 @@ module.exports = function cli() {
 		withSpinner( env.clean )
 	);
 	yargs.command(
+		'log',
+		'displays PHP and Docker logs for given WordPress environment.',
+		( args ) => {
+			args.positional( 'environment', {
+				type: 'string',
+				describe: 'Which environment to display the logs from.',
+				choices: [ 'development', 'tests' ],
+				default: 'development',
+			} );
+			args.positional( 'watch', {
+				type: 'boolean',
+				describe: 'If true, output logs to the console as they happen.',
+				default: true,
+			} );
+		},
+		withSpinner( env.log )
+	);
+	yargs.example(
+		'$0 log --watch=false --environment=tests',
+		'Displays the latest logs for the e2e test environment without watching.'
+	);
+	yargs.command(
 		'run <container> [command..]',
 		"Runs an arbitrary command in one of the underlying Docker containers, for example it's useful for running wp cli commands.",
 		( args ) => {
