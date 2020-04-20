@@ -236,12 +236,15 @@ ID      user_login      display_name    user_email      user_registered roles
 ✔ Ran `wp user list` in 'cli'. (in 2s 374ms)
 ```
 
-### `docker logs -f [container_id] >/dev/null` 
+### `wp-env log [environment] [watch]` 
 
 ```sh
-docker logs -f <container_id> >/dev/null 
+# Watches for and displays the latest logs on the
+# development WordPress instance as they happen.
+wp-env log
 
-Shows the error logs of the specified container in the terminal. The container_id is the one that is visible with `docker ps -a`
+# Displays the latest logs on the tests instance without watching for more.
+wp-env log --watch=false --environment=tests
 ```
 
 ## .wp-env.json
