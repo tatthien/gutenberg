@@ -244,7 +244,7 @@ function CoverEdit( {
 		hasParallax,
 		minHeight,
 		minHeightUnit,
-		padding,
+		style: styleAttribute,
 		url,
 	} = attributes;
 	const {
@@ -456,7 +456,7 @@ function CoverEdit( {
 	return (
 		<>
 			{ controls }
-			<BoxControlVisualizer values={ padding }>
+			<BoxControlVisualizer values={ styleAttribute?.padding }>
 				<ResizableCover
 					className={ classnames(
 						'block-library-cover__resize-container',
