@@ -9,7 +9,7 @@ import {
 	__experimentalPreviewOptions as PreviewOptions,
 } from '@wordpress/block-editor';
 import { useSelect, useDispatch } from '@wordpress/data';
-import { PinnedItems } from '@wordpress/interface';
+import { PinnedItems, AdminMenuToggle } from '@wordpress/interface';
 
 /**
  * Internal dependencies
@@ -51,6 +51,15 @@ export default function Header( { openEntitiesSavedStates } ) {
 				templateId: newTemplateId,
 				templateIds: [ ...prevSettings.templateIds, newTemplateId ],
 			} ) ),
+		[]
+	);
+
+	const { isFullscreenActive } = useSelect(
+		( select ) => ( {
+			isFullscreenActive: select( 'core/edit-site' ).isFeatureActive(
+				'fullscreenMode'
+			),
+		} ),
 		[]
 	);
 
