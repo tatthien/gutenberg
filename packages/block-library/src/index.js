@@ -76,6 +76,7 @@ import * as postExcerpt from './post-excerpt';
 import * as postFeaturedImage from './post-featured-image';
 import * as postTags from './post-tags';
 
+import * as widgetArea from './widget-area';
 /**
  * Function to register an individual block.
  *
@@ -188,6 +189,7 @@ export const __experimentalRegisterExperimentalCoreBlocks =
 				} = settings;
 
 				[
+					widgetArea,
 					__experimentalEnableLegacyWidgetBlock ? legacyWidget : null,
 					navigation,
 					navigationLink,
