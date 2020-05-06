@@ -1,14 +1,10 @@
 /**
- * External dependencies
- */
-import { isEqual, difference } from 'lodash';
-
-/**
  * WordPress dependencies
  */
 import { createBlock } from '@wordpress/blocks';
-import { useSelect, useDispatch } from '@wordpress/data';
+import { useSelect } from '@wordpress/data';
 import { useState, useRef, useEffect } from '@wordpress/element';
+import apiFetch from '@wordpress/api-fetch';
 
 function createBlockFromMenuItem( menuItem ) {
 	return createBlock( 'core/navigation-link', {
@@ -29,8 +25,6 @@ export default function useNavigationBlocks( menuId ) {
 		( select ) => select( 'core' ).getMenuItems( { menus: menuId } ),
 		[ menuId ]
 	);
-
-	const { saveMenuItem } = useDispatch( 'core' );
 
 	const [ blocks, setBlocks ] = useState( [] );
 
@@ -54,44 +48,33 @@ export default function useNavigationBlocks( menuId ) {
 		setBlocks( [ createBlock( 'core/navigation', {}, innerBlocks ) ] );
 	}, [ menuItems ] );
 
-	const saveBlocks = () => {
-		const { innerBlocks } = blocks[ 0 ];
+	const saveBlocks = async () => {
+		const { clientId, innerBlocks } = blocks[ 0 ];
+		const parentItemId = menuItemsRef.current[ clientId ]?.parent;
 
-		for ( const block of innerBlocks ) {
-			const menuItem = menuItemsRef.current[ block.clientId ];
+		const prepareRequestData = ( nestedBlocks, parentId = 0 ) =>
+			nestedBlocks.map( ( block ) => {
+				const menuItem = menuItemsRef.current[ block.clientId ];
+				const currentItemId = menuItem?.id || 0;
 
-			if ( ! menuItem ) {
-				saveMenuItem( {
+				return {
+					...( menuItem || {} ),
 					...createMenuItemAttributesFromBlock( block ),
 					menus: menuId,
-				} );
-				continue;
-			}
+					parent: parentId,
+					children: prepareRequestData(
+						block.innerBlocks,
+						currentItemId
+					),
+				};
+			} );
 
-			if (
-				! isEqual(
-					block.attributes,
-					createBlockFromMenuItem( menuItem ).attributes
-				)
-			) {
-				saveMenuItem( {
-					...menuItem,
-					...createMenuItemAttributesFromBlock( block ),
-					menus: menuId, // Gotta do this because REST API doesn't like receiving an array here. Maybe a bug in the REST API?
-				} );
-			}
-		}
-
-		const deletedClientIds = difference(
-			Object.keys( menuItemsRef.current ),
-			innerBlocks.map( ( block ) => block.clientId )
-		);
-
-		// Disable reason, this code will eventually be implemented.
-		// eslint-disable-next-line no-unused-vars
-		for ( const clientId of deletedClientIds ) {
-			// TODO - delete menu items.
-		}
+		const data = prepareRequestData( innerBlocks, parentItemId );
+		await apiFetch( {
+			path: `/__experimental/menus/${ menuId }/saveHierarchy`,
+			method: 'PUT',
+			data,
+		} );
 	};
 
 	return [ blocks, setBlocks, saveBlocks ];
