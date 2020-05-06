@@ -22,6 +22,23 @@ class WP_REST_Menus_Controller extends WP_REST_Terms_Controller {
 		$this->namespace = '__experimental';
 	}
 
+	public function register_routes() {
+		parent::register_routes();
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/(?P<id>[\d]+)/save_hierarchy',
+			array(
+				array(
+					'methods' => WP_REST_Server::EDITABLE,
+					'callback' => array( $this, 'update_hierarchy' ),
+					'permission_callback' => array( $this, 'get_items_permissions_check' ),
+					'args'                => $this->get_endpoint_args_for_item_schema( WP_REST_Server::EDITABLE ),
+				),
+				'schema' => array( $this, 'get_public_item_schema' ),
+			)
+		);
+	}
+
 	/**
 	 * Checks if a request has access to read terms in the specified taxonomy.
 	 *
@@ -304,6 +321,16 @@ class WP_REST_Menus_Controller extends WP_REST_Terms_Controller {
 		$response->header( 'Location', rest_url( $this->namespace . '/' . $this->rest_base . '/' . $term->term_id ) );
 
 		return $response;
+	}
+
+	public function update_hierarchy( $request ) {
+		$term = $this->get_term( $request['id'] );
+		if ( is_wp_error( $term ) ) {
+			return $term;
+		}
+
+		$menu_items = $request->get_body();
+		print_r($term);
 	}
 
 	/**

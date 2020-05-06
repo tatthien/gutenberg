@@ -71,7 +71,7 @@ export default function useNavigationBlocks( menuId ) {
 
 		const data = prepareRequestData( innerBlocks, parentItemId );
 		await apiFetch( {
-			path: `/__experimental/menus/${ menuId }/saveHierarchy`,
+			path: `/__experimental/menus/${ menuId }/save_hierarchy`,
 			method: 'PUT',
 			data,
 		} );
