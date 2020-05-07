@@ -1,4 +1,9 @@
 /**
+ * External dependencies
+ */
+import { groupBy } from 'lodash';
+
+/**
  * WordPress dependencies
  */
 import { createBlock } from '@wordpress/blocks';
@@ -6,11 +11,15 @@ import { useDispatch, useSelect } from '@wordpress/data';
 import { useState, useRef, useEffect } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 
-function createBlockFromMenuItem( menuItem ) {
-	return createBlock( 'core/navigation-link', {
-		label: menuItem.title.raw,
-		url: menuItem.url,
-	} );
+function createBlockFromMenuItem( menuItem, innerBlocks = [] ) {
+	return createBlock(
+		'core/navigation-link',
+		{
+			label: menuItem.title.rendered,
+			url: menuItem.url,
+		},
+		innerBlocks
+	);
 }
 
 function createMenuItemAttributesFromBlock( block ) {
@@ -36,16 +45,31 @@ export default function useNavigationBlocks( menuId ) {
 			return;
 		}
 
+		const itemsByParentID = groupBy( menuItems, 'parent' );
+
 		menuItemsRef.current = {};
 
-		const innerBlocks = [];
+		const createMenuItemBlocks = ( items ) => {
+			const innerBlocks = [];
+			for ( const item of items ) {
+				let menuItemInnerBlocks = [];
+				if ( itemsByParentID[ item.id ]?.length ) {
+					menuItemInnerBlocks = createMenuItemBlocks(
+						itemsByParentID[ item.id ]
+					);
+				}
+				const block = createBlockFromMenuItem(
+					item,
+					menuItemInnerBlocks
+				);
+				menuItemsRef.current[ block.clientId ] = item;
+				innerBlocks.push( block );
+			}
+			return innerBlocks;
+		};
 
-		for ( const menuItem of menuItems ) {
-			const block = createBlockFromMenuItem( menuItem );
-			menuItemsRef.current[ block.clientId ] = menuItem;
-			innerBlocks.push( block );
-		}
-
+		// createMenuItemBlocks takes an array of top-level menu items and recursively creates all their innerBlocks
+		const innerBlocks = createMenuItemBlocks( itemsByParentID[ 0 ] );
 		setBlocks( [ createBlock( 'core/navigation', {}, innerBlocks ) ] );
 	}, [ menuItems ] );
 
@@ -54,19 +78,20 @@ export default function useNavigationBlocks( menuId ) {
 		const parentItemId = menuItemsRef.current[ clientId ]?.parent;
 
 		const prepareRequestData = ( nestedBlocks, parentId = 0 ) =>
-			nestedBlocks.flatMap( ( block ) => {
+			nestedBlocks.map( ( block ) => {
 				const menuItem = menuItemsRef.current[ block.clientId ];
 				const currentItemId = menuItem?.id || 0;
 
-				return [
-					{
-						...( menuItem || {} ),
-						...createMenuItemAttributesFromBlock( block ),
-						menus: menuId,
-						parent: parentId,
-					},
-					...prepareRequestData( block.innerBlocks, currentItemId ),
-				];
+				return {
+					...( menuItem || {} ),
+					...createMenuItemAttributesFromBlock( block ),
+					menus: menuId,
+					parent: parentId,
+					children: prepareRequestData(
+						block.innerBlocks,
+						currentItemId
+					),
+				};
 			} );
 
 		const requestData = prepareRequestData( innerBlocks, parentItemId );
