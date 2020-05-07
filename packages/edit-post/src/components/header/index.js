@@ -6,7 +6,7 @@ import { Button } from '@wordpress/components';
 import { PostSavedState, PostPreviewButton } from '@wordpress/editor';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { cog } from '@wordpress/icons';
-import { PinnedItems, AdminMenuToggle } from '@wordpress/interface';
+import { PinnedItems } from '@wordpress/interface';
 
 /**
  * Internal dependencies
@@ -28,7 +28,6 @@ function Header( {
 		isPublishSidebarOpened,
 		isSaving,
 		getBlockSelectionStart,
-		isFullscreenActive,
 	} = useSelect(
 		( select ) => ( {
 			shortcut: select(
@@ -45,9 +44,6 @@ function Header( {
 			getBlockSelectionStart: select( 'core/block-editor' )
 				.getBlockSelectionStart,
 			isPostSaveable: select( 'core/editor' ).isEditedPostSaveable(),
-			isFullscreenActive: select( 'core/edit-post' ).isFeatureActive(
-				'fullscreenMode'
-			),
 			deviceType: select(
 				'core/edit-post'
 			).__experimentalGetPreviewDeviceType(),
@@ -69,7 +65,6 @@ function Header( {
 
 	return (
 		<div className="edit-post-header">
-			{ isFullscreenActive && <AdminMenuToggle /> }
 			<div className="edit-post-header__toolbar">
 				<HeaderToolbar
 					onToggleInserter={ onToggleInserter }
