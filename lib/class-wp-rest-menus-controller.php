@@ -329,8 +329,21 @@ class WP_REST_Menus_Controller extends WP_REST_Terms_Controller {
 			return $term;
 		}
 
-		$menu_items = $request->get_body();
-		print_r($term);
+		$items_controller = new WP_REST_Menu_Items_Controller( 'nav_menu_item' );
+
+		$menu_items = json_decode( $request->get_body() );
+		wp_update_post( array(
+			'ID' => $menu_items[0]->id,
+			'post_title' => 'This is the post title.',
+		) );
+
+		$response = [];
+		foreach($menu_items as $menu_item) {
+			$existing = get_post($menu_item->id);
+
+			$response[] = $items_controller->prepare_item_for_response($existing, $request);
+		}
+		return $response;
 	}
 
 	/**

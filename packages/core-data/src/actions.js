@@ -482,6 +482,16 @@ export function* saveEntityRecord(
 }
 
 /**
+ * Action triggered to save an entity record.
+ *
+ * @param {string} kind    Kind of the received entity.
+ * @param {string} name    Name of the received entity.
+ * @param {Object} record  Record to be saved.
+ * @param {Object} options Saving options.
+ */
+export function* saveEntityRecord() {}
+
+/**
  * Action triggered to save an entity record's edits.
  *
  * @param {string} kind     Kind of the entity.

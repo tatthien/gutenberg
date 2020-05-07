@@ -2,7 +2,7 @@
  * WordPress dependencies
  */
 import { createBlock } from '@wordpress/blocks';
-import { useSelect } from '@wordpress/data';
+import { useDispatch, useSelect } from '@wordpress/data';
 import { useState, useRef, useEffect } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 
@@ -25,6 +25,7 @@ export default function useNavigationBlocks( menuId ) {
 		( select ) => select( 'core' ).getMenuItems( { menus: menuId } ),
 		[ menuId ]
 	);
+	const { receiveEntityRecords } = useDispatch( 'core' );
 
 	const [ blocks, setBlocks ] = useState( [] );
 
@@ -69,12 +70,15 @@ export default function useNavigationBlocks( menuId ) {
 				};
 			} );
 
-		const data = prepareRequestData( innerBlocks, parentItemId );
-		await apiFetch( {
+		const requestData = prepareRequestData( innerBlocks, parentItemId );
+
+		const saved = await apiFetch( {
 			path: `/__experimental/menus/${ menuId }/save_hierarchy`,
 			method: 'PUT',
-			data,
+			data: requestData,
 		} );
+
+		console.log( saved );
 	};
 
 	return [ blocks, setBlocks, saveBlocks ];
