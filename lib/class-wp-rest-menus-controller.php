@@ -22,23 +22,6 @@ class WP_REST_Menus_Controller extends WP_REST_Terms_Controller {
 		$this->namespace = '__experimental';
 	}
 
-	public function register_routes() {
-		parent::register_routes();
-		register_rest_route(
-			$this->namespace,
-			'/' . $this->rest_base . '/(?P<id>[\d]+)/save_hierarchy',
-			array(
-				array(
-					'methods' => WP_REST_Server::EDITABLE,
-					'callback' => array( $this, 'update_hierarchy' ),
-					'permission_callback' => array( $this, 'get_items_permissions_check' ),
-					'args'                => $this->get_endpoint_args_for_item_schema( WP_REST_Server::EDITABLE ),
-				),
-				'schema' => array( $this, 'get_public_item_schema' ),
-			)
-		);
-	}
-
 	/**
 	 * Checks if a request has access to read terms in the specified taxonomy.
 	 *
@@ -320,29 +303,6 @@ class WP_REST_Menus_Controller extends WP_REST_Terms_Controller {
 		$response->set_status( 201 );
 		$response->header( 'Location', rest_url( $this->namespace . '/' . $this->rest_base . '/' . $term->term_id ) );
 
-		return $response;
-	}
-
-	public function update_hierarchy( $request ) {
-		$term = $this->get_term( $request['id'] );
-		if ( is_wp_error( $term ) ) {
-			return $term;
-		}
-
-		$items_controller = new WP_REST_Menu_Items_Controller( 'nav_menu_item' );
-
-		$menu_items = json_decode( $request->get_body() );
-		wp_update_post( array(
-			'ID' => $menu_items[0]->id,
-			'post_title' => 'This is the post title.',
-		) );
-
-		$response = [];
-		foreach($menu_items as $menu_item) {
-			$existing = get_post($menu_item->id);
-
-			$response[] = $items_controller->prepare_item_for_response($existing, $request);
-		}
 		return $response;
 	}
 

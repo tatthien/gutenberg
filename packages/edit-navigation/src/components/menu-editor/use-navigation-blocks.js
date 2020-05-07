@@ -54,29 +54,42 @@ export default function useNavigationBlocks( menuId ) {
 		const parentItemId = menuItemsRef.current[ clientId ]?.parent;
 
 		const prepareRequestData = ( nestedBlocks, parentId = 0 ) =>
-			nestedBlocks.map( ( block ) => {
+			nestedBlocks.flatMap( ( block ) => {
 				const menuItem = menuItemsRef.current[ block.clientId ];
 				const currentItemId = menuItem?.id || 0;
 
-				return {
-					...( menuItem || {} ),
-					...createMenuItemAttributesFromBlock( block ),
-					menus: menuId,
-					parent: parentId,
-					children: prepareRequestData(
-						block.innerBlocks,
-						currentItemId
-					),
-				};
+				return [
+					{
+						...( menuItem || {} ),
+						...createMenuItemAttributesFromBlock( block ),
+						menus: menuId,
+						parent: parentId,
+					},
+					...prepareRequestData( block.innerBlocks, currentItemId ),
+				];
 			} );
 
 		const requestData = prepareRequestData( innerBlocks, parentItemId );
 
 		const saved = await apiFetch( {
-			path: `/__experimental/menus/${ menuId }/save_hierarchy`,
+			path: `/__experimental/menu-items/save-hierarchy?menus=${ menuId }`,
 			method: 'PUT',
-			data: requestData,
+			data: { tree: requestData },
 		} );
+
+		const kind = 'root';
+		const name = 'menuItem';
+		receiveEntityRecords(
+			kind,
+			name,
+			saved,
+			// {
+			// 	...item.data,
+			// 	title: { rendered: 'experimental' },
+			// },
+			undefined,
+			true
+		);
 
 		console.log( saved );
 	};

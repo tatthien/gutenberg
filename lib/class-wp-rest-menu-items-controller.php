@@ -22,6 +22,23 @@ class WP_REST_Menu_Items_Controller extends WP_REST_Posts_Controller {
 		$this->namespace = '__experimental';
 	}
 
+	public function register_routes() {
+		parent::register_routes();
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/save-hierarchy',
+			array(
+				array(
+					'methods' => WP_REST_Server::EDITABLE,
+					'callback' => array( $this, 'update_hierarchy' ),
+					'permission_callback' => array( $this, 'get_items_permissions_check' ),
+					'args'                => $this->get_endpoint_args_for_item_schema( WP_REST_Server::EDITABLE ),
+				),
+				'schema' => array( $this, 'get_public_item_schema' ),
+			)
+		);
+	}
+
 	/**
 	 * Get the post, if the ID is valid.
 	 *
@@ -103,7 +120,6 @@ class WP_REST_Menu_Items_Controller extends WP_REST_Posts_Controller {
 			return $prepared_nav_item;
 		}
 		$prepared_nav_item = (array) $prepared_nav_item;
-
 		$nav_menu_item_id = wp_update_nav_menu_item( $prepared_nav_item['menu-id'], $prepared_nav_item['menu-item-db-id'], $prepared_nav_item );
 		if ( is_wp_error( $nav_menu_item_id ) ) {
 			if ( 'db_insert_error' === $nav_menu_item_id->get_error_code() ) {
@@ -452,12 +468,15 @@ class WP_REST_Menu_Items_Controller extends WP_REST_Posts_Controller {
 			}
 
 			// Check if existing menu position is already in use by another menu item.
-			$menu_item_ids = array();
-			foreach ( $menu_items as $menu_item ) {
-				$menu_item_ids[] = $menu_item->ID;
-				if ( $menu_item->ID !== (int) $menu_item_db_id ) {
-					if ( (int) $prepared_nav_item['menu-item-position'] === (int) $menu_item->menu_order ) {
-						return new WP_Error( 'invalid_menu_order', __( 'Invalid menu position.', 'gutenberg' ), array( 'status' => 400 ) );
+			if ( ! $this->ignore_position_collision ) {
+				$menu_item_ids = array();
+				foreach ( $menu_items as $menu_item ) {
+					$menu_item_ids[] = $menu_item->ID;
+					if ( $menu_item->ID !== (int) $menu_item_db_id ) {
+						if ( (int) $prepared_nav_item['menu-item-position'] === (int) $menu_item->menu_order ) {
+							return new WP_Error( 'invalid_menu_order', __( 'Invalid menu position.', 'gutenberg' ),
+								array( 'status' => 400 ) );
+						}
 					}
 				}
 			}
@@ -1059,4 +1078,127 @@ class WP_REST_Menu_Items_Controller extends WP_REST_Posts_Controller {
 
 		return $menu_id;
 	}
+
+	public function update_hierarchy( $request ) {
+		$navigation_id = $request['menus'];
+		$current_items_by_id = $this->get_current_items_by_id( $navigation_id );
+		$target_items = $request['tree'];
+
+		$added_menu_items = [];
+		$deleted_menu_items = [];
+		$updated_menu_items = [];
+		$found_ids = [];
+		foreach ( $target_items as $item ) {
+			if ( empty( $item['id'] ) ) {
+				$added_menu_items[] = $item;
+			} elseif ( array_key_exists( $item['id'], $current_items_by_id ) ) {
+				$found_ids[] = $item['id'];
+				$updated_menu_items[] = $item;
+			} else {
+				// @TODO ??
+			}
+		}
+
+		foreach ( $current_items_by_id as $id => $item ) {
+			if ( ! in_array( $id, $found_ids ) ) {
+				$deleted_menu_items[] = ['id'=>$item->ID, 'force'=>true];
+			}
+		}
+
+//		print_r($current_items_by_id);
+//		print_r($added_menu_items);
+//		print_r($deleted_menu_items);
+//		print_r($updated_menu_items);
+
+		$this->ignore_position_collision = true;
+		foreach($added_menu_items as $menu_item) {
+			$mock_request = new WP_REST_Request();
+			foreach($menu_item as $k=>$v) {
+				$mock_request[$k] = $v;
+			}
+			$item = $this->create_item($mock_request);
+		}
+
+		foreach($updated_menu_items as $menu_item) {
+			$mock_request = new WP_REST_Request();
+			foreach($menu_item as $k=>$v) {
+				$mock_request[$k] = $v;
+			}
+			$item = $this->update_item($mock_request);
+		}
+
+		foreach($deleted_menu_items as $menu_item) {
+			$mock_request = new WP_REST_Request();
+			foreach($menu_item as $k=>$v) {
+				$mock_request[$k] = $v;
+			}
+		}
+
+		return $this->get_items( $request );
+	}
+
+	protected function update_tree( $existing_menu_items, $navigation_id, $parent_id, $menu_items ) {
+		$branches = [];
+
+		foreach ( $existing_menu_items as $id => $item ) {
+			if ( ! in_array( $id, $found_ids ) ) {
+				$deleted_menu_items[] = $item;
+				wp_update_nav_menu_item( $navigation_id, $item->ID, [
+					'menu-item-position' => - 1,
+				] );
+			}
+		}
+
+		foreach($deleted_menu_items as $menu_item) {
+//			wp_delete_post( $menu_item['id'], true );
+		}
+
+		foreach($added_menu_items as $menu_item) {
+			$mock_request = new WP_REST_Request();
+			foreach($menu_item as $k=>$v) {
+				$mock_request[$k] = $v;
+			}
+			$item = $this->create_item($mock_request);
+			die(print_r($item));
+		}
+		die(':(');
+
+		wp_update_post( array(
+			'ID' => $menu_items[0]->id,
+			'post_title' => 'This is the post title.' . rand(),
+		) );
+
+		$response = [];
+		foreach($menu_items as $menu_item) {
+			$existing = get_post($menu_item->id);
+
+			$response[] = $this->prepare_item_for_response($existing, $request);
+
+			if ( ! empty( $menu_item['children'] ) ) {
+				array_push( $branches, [ $current_id, $menu_item['children'] ] );
+			}
+		}
+	}
+
+	private function get_current_items_by_id( $navigation_id ) {
+//		$menu_items = wp_get_nav_menu_items( $navigation_id, array( 'post_status' => 'publish,draft' ) );
+
+		$posts = null;
+		$hijack_posts = function($_posts) use(&$posts) {
+			$posts = $_posts;
+		};
+
+		add_action('the_posts', $hijack_posts);
+		$items_request = new WP_REST_Request();
+		$items_request['menus'] = $navigation_id;
+		$this->get_items( $items_request );
+		remove_action('the_posts', $hijack_posts);
+
+		$current_items_by_id = [];
+		foreach ( $posts as $menu_item ) {
+			$current_items_by_id[ $menu_item->ID ] = $menu_item;
+		}
+		return $current_items_by_id;
+	}
+
 }
