@@ -18,6 +18,7 @@ class WP_REST_Menu_Items_Batch_Processor {
 
 		$current_menu_items = wp_get_nav_menu_items( $navigation_id, array( 'post_status' => 'publish,draft' ) );
 
+		// @TODO: BEGIN transaction
 		$stack = [
 			[ 0, $tree ],
 		];
@@ -36,6 +37,7 @@ class WP_REST_Menu_Items_Batch_Processor {
 					$result = $this->request_insert( $raw_menu_item );
 				}
 				if ( is_wp_error( $result ) ) {
+					// @TODO: ROLLBACK transaction
 					return $result;
 				}
 				$database_id = $result['id'];
@@ -51,6 +53,7 @@ class WP_REST_Menu_Items_Batch_Processor {
 				$this->request_delete( $item->ID );
 			}
 		}
+		// @TODO: COMMIT transaction
 
 		return $this->request_items();
 	}
