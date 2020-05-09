@@ -102,6 +102,8 @@ function Header( {
 				onClick={ toggleGeneralSidebar }
 				isPressed={ isEditorSidebarOpened }
 				aria-expanded={ isEditorSidebarOpened }
+				showIconLabel={ showIconLabel }
+				showTooltip={ ! showIconLabel }
 				shortcut={ shortcut }
 			/>
 			<PinnedItems.Slot scope="core/edit-post" />
