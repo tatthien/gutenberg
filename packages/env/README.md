@@ -210,7 +210,7 @@ Positionals:
             [string] [choices: "all", "development", "tests"] [default: "tests"]
 ```
 
-### `wp-env run [container] [command]` 
+### `wp-env run [container] [command]`
 
 ```sh
 wp-env run <container> [command..]
@@ -236,15 +236,22 @@ ID      user_login      display_name    user_email      user_registered roles
 ✔ Ran `wp user list` in 'cli'. (in 2s 374ms)
 ```
 
-### `wp-env log [environment] [watch]` 
+### `wp-env logs [environment] [watch]`
 
-```sh
-# Watches for and displays the latest logs on the
-# development WordPress instance as they happen.
-wp-env log
+````sh
+wp-env logs
 
-# Displays the latest logs on the tests instance without watching for more.
-wp-env log --watch=false --environment=tests
+displays PHP and Docker logs for given WordPress environment.
+
+Positionals:
+  environment  Which environment to display the logs from.
+      [string] [choices: "development", "tests", "all"] [default: "development"]
+
+Options:
+  --help     Show help                                                 [boolean]
+  --version  Show version number                                       [boolean]
+  --debug    Enable debug output.                     [boolean] [default: false]
+  --watch    Watch for logs as they happen.            [boolean] [default: true]
 ```
 
 ## .wp-env.json
@@ -290,7 +297,7 @@ This is useful for plugin development.
 	"core": null,
 	"plugins": [ "." ]
 }
-```
+````
 
 #### Latest development WordPress + current directory as a plugin
 
