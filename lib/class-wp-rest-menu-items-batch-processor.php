@@ -10,7 +10,10 @@ class WP_REST_Menu_Items_Batch_Processor {
 	private $controller;
 
 	public function __construct( WP_REST_Menu_Items_Controller $controller ) {
+		global $wpdb;
+
 		$this->controller = $controller;
+		$this->wpdb = $wpdb;
 	}
 
 	public function process( $navigation_id, $tree ) {
@@ -18,7 +21,10 @@ class WP_REST_Menu_Items_Batch_Processor {
 
 		$current_menu_items = wp_get_nav_menu_items( $navigation_id, array( 'post_status' => 'publish,draft' ) );
 
-		// @TODO: BEGIN transaction
+		$result = $this->wpdb->query('START TRANSACTION');
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
 		$stack = [
 			[ 0, $tree ],
 		];
@@ -37,7 +43,7 @@ class WP_REST_Menu_Items_Batch_Processor {
 					$result = $this->request_insert( $raw_menu_item );
 				}
 				if ( is_wp_error( $result ) ) {
-					// @TODO: ROLLBACK transaction
+					$this->wpdb->query('ROLLBACK');
 					return $result;
 				}
 				$database_id = $result['id'];
@@ -53,7 +59,10 @@ class WP_REST_Menu_Items_Batch_Processor {
 				$this->request_delete( $item->ID );
 			}
 		}
-		// @TODO: COMMIT transaction
+		$result = $this->wpdb->query('COMMIT');
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
 
 		return $this->request_items();
 	}
