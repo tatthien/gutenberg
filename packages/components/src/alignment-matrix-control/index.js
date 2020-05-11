@@ -60,7 +60,7 @@ export default function AlignmentMatrixControl( {
 	};
 
 	useEffect( () => {
-		if ( typeof value !== 'undefined' ) {
+		if ( value !== undefined ) {
 			composite.setCurrentId( getItemId( baseId, value ) );
 		}
 	}, [ value, composite.setCurrentId ] );
