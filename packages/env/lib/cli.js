@@ -110,7 +110,7 @@ module.exports = function cli() {
 		withSpinner( env.clean )
 	);
 	yargs.command(
-		'log',
+		'logs',
 		'displays PHP and Docker logs for given WordPress environment.',
 		( args ) => {
 			args.positional( 'environment', {
@@ -119,16 +119,16 @@ module.exports = function cli() {
 				choices: [ 'development', 'tests' ],
 				default: 'development',
 			} );
-			args.positional( 'watch', {
+			args.option( 'watch', {
 				type: 'boolean',
-				describe: 'If true, output logs to the console as they happen.',
 				default: true,
+				describe: 'Watch for logs as they happen.',
 			} );
 		},
-		withSpinner( env.log )
+		withSpinner( env.logs )
 	);
 	yargs.example(
-		'$0 log --watch=false --environment=tests',
+		'$0 logs --no-watch --environment=tests',
 		'Displays the latest logs for the e2e test environment without watching.'
 	);
 	yargs.command(
