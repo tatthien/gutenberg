@@ -4,7 +4,7 @@
 
 ### New Feature
 
--   View log output with the new `wp-env` log command.
+-   View log output with the new `wp-env logs` command.
 
 ## 1.1.0 (2020-04-01)
 
