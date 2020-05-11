@@ -27,22 +27,41 @@ module.exports = async function logs( { environment, watch, spinner, debug } ) {
 		spinner.text = `Showing logs for the ${ environment } environment.`;
 	}
 
-	// Display Docker and PHP logs:
-	const result = await dockerCompose.logs(
-		environment === 'tests' ? 'tests-wordpress' : 'wordpress',
-		{
-			config: config.dockerComposeConfigPath,
-			log: watch, // Must log inline if we are watching the log output.
-			commandOptions: watch ? [ '--follow' ] : [],
-		}
+	const servicesToWatch =
+		environment === 'all'
+			? [ 'tests-wordpress', 'wordpress' ]
+			: [ 'tests' ? 'tests-wordpress' : 'wordpress' ];
+
+	const output = await Promise.all( [
+		...servicesToWatch.map( ( service ) =>
+			dockerCompose.logs( service, {
+				config: config.dockerComposeConfigPath,
+				log: watch, // Must log inline if we are watching the log output.
+				commandOptions: watch ? [ '--follow' ] : [],
+			} )
+		),
+	] );
+
+	// Combine the results from each docker output.
+	const result = output.reduce(
+		( acc, current ) => {
+			if ( current.out ) {
+				acc.out = acc.out.concat( current.out );
+			}
+			if ( current.err ) {
+				acc.err = acc.err.concat( current.err );
+			}
+			return acc;
+		},
+		{ out: '', err: '' }
 	);
 
-	if ( result.out ) {
+	if ( result.out.length ) {
 		// eslint-disable-next-line no-console
 		console.log(
 			process.stdout.isTTY ? `\n\n${ result.out }\n\n` : result.out
 		);
-	} else if ( result.err ) {
+	} else if ( result.err.length ) {
 		// eslint-disable-next-line no-console
 		console.error(
 			process.stdout.isTTY ? `\n\n${ result.err }\n\n` : result.err

@@ -116,7 +116,7 @@ module.exports = function cli() {
 			args.positional( 'environment', {
 				type: 'string',
 				describe: 'Which environment to display the logs from.',
-				choices: [ 'development', 'tests' ],
+				choices: [ 'development', 'tests', 'all' ],
 				default: 'development',
 			} );
 			args.option( 'watch', {
