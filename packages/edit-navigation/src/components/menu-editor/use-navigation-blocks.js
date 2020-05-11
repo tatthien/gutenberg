@@ -78,13 +78,14 @@ export default function useNavigationBlocks( menuId ) {
 		const parentItemId = menuItemsRef.current[ clientId ]?.parent;
 
 		const prepareRequestData = ( nestedBlocks, parentId = 0 ) =>
-			nestedBlocks.map( ( block ) => {
+			nestedBlocks.map( ( block, n ) => {
 				const menuItem = menuItemsRef.current[ block.clientId ];
 				const currentItemId = menuItem?.id || 0;
 
 				return {
 					...( menuItem || {} ),
 					...createMenuItemAttributesFromBlock( block ),
+					menu_order: n + 1,
 					menus: menuId,
 					parent: parentId,
 					children: prepareRequestData(
@@ -115,8 +116,6 @@ export default function useNavigationBlocks( menuId ) {
 			undefined,
 			true
 		);
-
-		console.log( saved );
 	};
 
 	return [ blocks, setBlocks, saveBlocks ];
