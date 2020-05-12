@@ -1253,7 +1253,6 @@ class WP_REST_Menu_Items_Controller extends WP_REST_Posts_Controller {
 		return [ $inserts, $updates, $deletes ];
 	}
 
-
 	protected function bulk_persist( $request, $inserts, $updates, $deletes ) {
 		$response_data = [];
 
@@ -1290,7 +1289,9 @@ class WP_REST_Menu_Items_Controller extends WP_REST_Posts_Controller {
 
 		return $response_data;
 	}
+
 }
+
 
 class Operation {
 	public $input;
@@ -1309,5 +1310,4 @@ class Operation {
 		$this->input = $input;
 		$this->parent = $parent;
 	}
-
 }
