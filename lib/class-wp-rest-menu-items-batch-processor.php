@@ -19,25 +19,23 @@ class WP_REST_Menu_Items_Batch_Processor {
 	}
 
 	public function process( $navigation_id, $tree ) {
-		global $wpdb;
-
 		$validated_operations = $this->bulk_validate( $navigation_id, $tree );
 		if ( is_wp_error( $validated_operations ) ) {
 			return $validated_operations;
 		}
 
-		$wpdb->query( 'START TRANSACTION' );
-		$wpdb->query( 'SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ' );
+		$this->wpdb->query( 'START TRANSACTION' );
+		$this->wpdb->query( 'SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ' );
 
 		$result = $this->bulk_persist( $validated_operations );
 
 		if ( is_wp_error( $result ) ) {
-			$wpdb->query( 'ROLLBACK' );
+			$this->wpdb->query( 'ROLLBACK' );
 
 			return $result;
 		}
 
-		$wpdb->query( 'COMMIT' );
+		$this->wpdb->query( 'COMMIT' );
 
 		return $result;
 	}
