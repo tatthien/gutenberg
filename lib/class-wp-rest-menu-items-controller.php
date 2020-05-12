@@ -235,11 +235,11 @@ class WP_REST_Menu_Items_Controller extends WP_REST_Posts_Controller {
 	 * @return WP_REST_Response|WP_Error Response object on success, or WP_Error object on failure.
 	 */
 	public function update_item( $request ) {
-		$prepared_nav_item = $this->update_item_persist( $request['id'], $request );
+		$prepared_nav_item = $this->update_item_validate( $request['id'], $request );
 		if ( is_wp_error( $prepared_nav_item ) ) {
 			return $prepared_nav_item;
 		}
-		$nav_menu_item = $this->update_item_update( $prepared_nav_item, $request, $request );
+		$nav_menu_item = $this->update_item_persist( $prepared_nav_item, $request, $request );
 
 		$request->set_param( 'context', 'edit' );
 
@@ -251,7 +251,7 @@ class WP_REST_Menu_Items_Controller extends WP_REST_Posts_Controller {
 		return rest_ensure_response( $response );
 	}
 
-	public function update_item_persist( $id, $input ) {
+	public function update_item_validate( $id, $input ) {
 		$valid_check = $this->get_nav_menu_item( $id );
 		if ( is_wp_error( $valid_check ) ) {
 			return $valid_check;
@@ -267,7 +267,7 @@ class WP_REST_Menu_Items_Controller extends WP_REST_Posts_Controller {
 		return $prepared_nav_item;
 	}
 
-	public function update_item_update( $prepared_nav_item, $input, $request ) {
+	public function update_item_persist( $prepared_nav_item, $input, $request ) {
 		$nav_menu_item_id = wp_update_nav_menu_item( $prepared_nav_item['menu-id'], $prepared_nav_item['menu-item-db-id'], $prepared_nav_item );
 
 		if ( is_wp_error( $nav_menu_item_id ) ) {
@@ -1196,7 +1196,7 @@ class WP_REST_Menu_Items_Controller extends WP_REST_Posts_Controller {
 			$insert->prepared_item = $result;
 		}
 		foreach ( $updates as  $update ) {
-			$result = $this->update_item_persist( $update->input['id'], $update->input );
+			$result = $this->update_item_validate( $update->input['id'], $update->input );
 			if ( is_wp_error( $result ) ) {
 				return $result;
 			}
@@ -1257,7 +1257,7 @@ class WP_REST_Menu_Items_Controller extends WP_REST_Posts_Controller {
 		$response_data = [];
 
 		foreach ( $inserts as $insert ) {
-			if ( ! empty( $insert->parent ) ) {
+			if ( ! empty( $insert->parent ) && $insert->parent->result->ID ) {
 				$insert->prepared_item['menu-item-parent-id'] = $insert->parent->result->ID;
 			}
 			$result = $this->create_item_persist( $insert->prepared_item, $insert->input, $request );
@@ -1269,13 +1269,14 @@ class WP_REST_Menu_Items_Controller extends WP_REST_Posts_Controller {
 		}
 
 		foreach ( $updates as $update ) {
-			if ( ! empty( $update->parent ) ) {
+			if ( ! empty( $update->parent ) && $update->parent->result->ID ) {
 				$update->prepared_item['menu-item-parent-id'] = $update->parent->result->ID;
 			}
-			$result = $this->update_item_update( $update->prepared_item, $update->input, $request );
+			$result = $this->update_item_persist( $update->prepared_item, $update->input, $request );
 			if ( is_wp_error( $result ) ) {
 				return $result;
 			}
+			$update->result = $result;
 			$response_data[] = [ 'ok' ];
 		}
 
