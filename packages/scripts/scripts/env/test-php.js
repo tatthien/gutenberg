@@ -19,7 +19,7 @@ const args = getArgsFromCLI().join( ' ' );
 // Default to CWD basename for the plugin to run.
 const pluginDir =
 	env.npm_package_wp_env_plugin_dir || path.basename( process.cwd() );
-const localDir = env.LOCAL_DIR || 'src';
+const localDir = env.LOCAL_DIR || 'html';
 
 // Executes phpunit in the Docker Service.
 wpEnv
