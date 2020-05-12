@@ -147,11 +147,12 @@ module.exports = function buildDockerComposeConfig( config ) {
 				init: true,
 				depends_on: [ 'mysql' ],
 				volumes: [
-					...developmentMounts,
+					...testsMounts,
 					'phpunit-uploads:/var/www/html/wp-content/uploads',
 				],
 				environment: {
 					LOCAL_DIR: 'html',
+					WP_PHPUNIT__TESTS_CONFIG: '/var/www/html/wp-config.php',
 				},
 			},
 		},
