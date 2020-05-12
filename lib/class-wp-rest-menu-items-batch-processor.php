@@ -101,17 +101,12 @@ class WP_REST_Menu_Items_Batch_Processor {
 	}
 
 	protected function bulk_persist( $validated_operations ) {
-		$response_data = [];
-
 		foreach ( $validated_operations as $operation ) {
 			$result = $operation->persist( $this->request );
 			if ( is_wp_error( $result ) ) {
 				return $result;
 			}
-			$response_data[] = [ 'ok' ];
 		}
-
-		return $response_data;
 	}
 
 }
