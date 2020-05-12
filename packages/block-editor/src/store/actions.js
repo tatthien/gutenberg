@@ -1010,3 +1010,12 @@ export function toggleBlockHighlight( clientId, isHighlighted ) {
 		isHighlighted,
 	};
 }
+
+export function* flashBlock( clientId ) {
+	yield toggleBlockHighlight( clientId, true );
+	yield {
+		type: 'SLEEP',
+		duration: 150,
+	};
+	yield toggleBlockHighlight( clientId, false );
+}
