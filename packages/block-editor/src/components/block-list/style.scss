@@ -600,12 +600,3 @@
 .is-dragging-components-draggable .components-tooltip {
 	display: none;
 }
-
-// The editor-styles.scss file adds 10px padding all around the canvas, to ensure blocks aren't edge to edge on mobile.
-// For full-wide blocks, we compensate for these 10px.
-.block-editor-block-list__layout.is-root-container {
-	> .wp-block[data-align="full"] {
-		margin-left: -10px;
-		margin-right: -10px;
-	}
-}

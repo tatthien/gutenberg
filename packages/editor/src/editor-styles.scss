@@ -16,6 +16,13 @@ body {
 	padding: 10px;
 }
 
+// For full-wide blocks, we compensate for these 10px.
+.block-editor-block-list__layout.is-root-container > .wp-block[data-align="full"] {
+	margin-left: -10px;
+	margin-right: -10px;
+}
+
+
 /* Headings */
 // These follow a Major Third type scale
 // https://type-scale.com/?size=16&scale=1.250&text=A%20Visual%20Type%20Scale&font=Noto%20Serif&fontweight=600
