@@ -15,7 +15,7 @@ export const ALIGNMENT_LABEL = {
 	'top center': __( 'Top Center' ),
 	'top right': __( 'Top Right' ),
 	'center left': __( 'Center Left' ),
-	'center center': __( 'Center Center' ),
+	'center center': __( 'Center' ),
 	'center right': __( 'Center Right' ),
 	'bottom left': __( 'Bottom Left' ),
 	'bottom center': __( 'Bottom Center' ),
