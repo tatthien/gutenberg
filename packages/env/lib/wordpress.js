@@ -71,24 +71,29 @@ async function configureWordPress( environment, config ) {
 		log: config.debug,
 	};
 
+	// Runs a command in the correct CLI environment.
+	const cliRun = async ( command ) => {
+		await dockerCompose.run(
+			environment === 'development' ? 'cli' : 'tests-cli',
+			command,
+			options
+		);
+	};
+
 	const port = environment === 'development' ? config.port : config.testsPort;
 
 	// Install WordPress.
-	await dockerCompose.run(
-		environment === 'development' ? 'cli' : 'tests-cli',
-		[
-			'wp',
-			'core',
-			'install',
-			`--url=localhost:${ port }`,
-			`--title=${ config.name }`,
-			'--admin_user=admin',
-			'--admin_password=password',
-			'--admin_email=wordpress@example.com',
-			'--skip-email',
-		],
-		options
-	);
+	await cliRun( [
+		'wp',
+		'core',
+		'install',
+		`--url=localhost:${ port }`,
+		`--title=${ config.name }`,
+		'--admin_user=admin',
+		'--admin_password=password',
+		'--admin_email=wordpress@example.com',
+		'--skip-email',
+	] );
 
 	// Set wp-config.php values.
 	for ( const [ key, value ] of Object.entries( config.config ) ) {
@@ -96,30 +101,18 @@ async function configureWordPress( environment, config ) {
 		if ( typeof value !== 'string' ) {
 			command.push( '--raw' );
 		}
-		await dockerCompose.run(
-			environment === 'development' ? 'cli' : 'tests-cli',
-			command,
-			options
-		);
+		await cliRun( command );
 	}
 
 	// Activate all plugins.
 	for ( const pluginSource of config.pluginSources ) {
-		await dockerCompose.run(
-			environment === 'development' ? 'cli' : 'tests-cli',
-			`wp plugin activate ${ pluginSource.basename }`,
-			options
-		);
+		await cliRun( `wp plugin activate ${ pluginSource.basename }` );
 	}
 
 	// Activate the first theme.
 	const [ themeSource ] = config.themeSources;
 	if ( themeSource ) {
-		await dockerCompose.run(
-			environment === 'development' ? 'cli' : 'tests-cli',
-			`wp theme activate ${ themeSource.basename }`,
-			options
-		);
+		await cliRun( `wp theme activate ${ themeSource.basename }` );
 	}
 }
 
