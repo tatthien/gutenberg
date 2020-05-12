@@ -1291,7 +1291,17 @@ abstract class Operation {
 	}
 
 	abstract protected function doValidate();
-	abstract protected function persist($request);
+
+	public function persist( $request ) {
+		if ( ! empty( $this->parent ) && $this->prepared_item ) {
+			$this->prepared_item['menu-item-parent-id'] = $this->parent->result->ID;
+		}
+
+		$this->result = $this->doPersist($request);
+		return $this->result;
+	}
+
+	abstract protected function doPersist($request);
 }
 
 class InsertOperation extends Operation {
@@ -1300,10 +1310,7 @@ class InsertOperation extends Operation {
 		return $this->controller->create_item_validate( $this->input['id'] ?? null, $this->input);
 	}
 
-	public function persist( $request ) {
-		if ( ! empty( $this->parent ) && $this->parent->result->ID ) {
-			$this->prepared_item['menu-item-parent-id'] = $this->parent->result->ID;
-		}
+	public function doPersist( $request ) {
 		return $this->controller->create_item_persist( $this->prepared_item, $this->input, $request );
 	}
 
@@ -1315,10 +1322,7 @@ class UpdateOperation extends Operation {
 		return $this->controller->update_item_validate( $this->input['id'], $this->input);
 	}
 
-	public function persist( $request ) {
-		if ( ! empty( $this->parent ) && $this->parent->result->ID ) {
-			$this->prepared_item['menu-item-parent-id'] = $this->parent->result->ID;
-		}
+	public function doPersist( $request ) {
 		return $this->controller->update_item_persist( $this->prepared_item, $this->input, $request );
 	}
 
@@ -1330,7 +1334,7 @@ class DeleteOperation extends Operation {
 		return $this->controller->delete_item_validate( $this->input['id'], $this->input);
 	}
 
-	public function persist( $request ) {
+	public function doPersist( $request ) {
 		return $this->controller->delete_item_persist( $this->input['id'] );
 	}
 
