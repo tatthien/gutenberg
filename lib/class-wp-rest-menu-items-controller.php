@@ -1154,18 +1154,14 @@ class WP_REST_Menu_Items_Controller extends WP_REST_Posts_Controller {
 		require_once __DIR__ . "/class-wp-rest-menu-items-batch-processor.php";
 		$processor = new WP_REST_Menu_Items_Batch_Processor( $this, $request );
 
-		$result = $processor->process( $request['menus'], $request['tree'] );
+		$navigation_id = $request['menus'];
+		$result = $processor->process( $navigation_id, $request['tree'] );
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
 
 		$response = new WP_REST_Response();
-		$response->set_data(
-			array(
-				'success' => true,
-				'operations' => $result,
-			)
-		);
+		$response->set_data($this->get_menu_items($navigation_id));
 
 		return $response;
 	}

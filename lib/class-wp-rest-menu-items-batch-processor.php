@@ -24,6 +24,9 @@ class WP_REST_Menu_Items_Batch_Processor {
 			return $validated_operations;
 		}
 
+		// Transactions may or may not be supported in the current environment.
+		// Ideally we would know and only use them if they are. For the purpose of this prototype,
+		// let's simplify that dilemma by just ignoring the result of those queries.
 		$this->wpdb->query( 'START TRANSACTION' );
 		$this->wpdb->query( 'SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ' );
 
@@ -37,12 +40,16 @@ class WP_REST_Menu_Items_Batch_Processor {
 
 		$this->wpdb->query( 'COMMIT' );
 
+		// @TODO: figure out how to handle rest_insert_ and rest_after_insert_ hooks
+
 		return $result;
 	}
 
 	protected function bulk_validate( $navigation_id, $input_tree ) {
 		$operations = $this->diff( $navigation_id, $input_tree );
 
+		// Not sure what to do with these positions yet - maybe we should send nothing over
+		// the wire and just assign them here based on the order of received data?
 		$this->controller->ignore_position_collision = true;
 		foreach ( $operations as $operation ) {
 			$result = $operation->validate();
@@ -70,11 +77,8 @@ class WP_REST_Menu_Items_Batch_Processor {
 
 				if ( ! empty( $raw_menu_item['id'] ) ) {
 					$updated_ids[] = $raw_menu_item['id'];
-					// Only process updated menu items
-//					if ( $raw_menu_item['dirty'] ) {
 					$operation = new UpdateOperation( $this->controller, $raw_menu_item, $parent_operation );
 					$operations[] = $operation;
-//					}
 				} else {
 					$operation = new InsertOperation( $this->controller, $raw_menu_item, $parent_operation );
 					$operations[] = $operation;
@@ -112,6 +116,7 @@ class WP_REST_Menu_Items_Batch_Processor {
 
 }
 
+// It would be great to move these to a separate file:
 
 abstract class Operation {
 	const INSERT = 'insert';
@@ -127,6 +132,10 @@ abstract class Operation {
 
 	/**
 	 * Operation constructor.
+	 *
+	 * I really dislike the dependency on $controller, but core code is quite interlocked. I don't think
+	 * it's possible to get rid of that without fundamental refactoring of WP_REST_Posts_Controller
+	 * which is outside of scope of this change.
 	 *
 	 * @param $input
 	 * @param $parent
@@ -166,6 +175,8 @@ abstract class Operation {
 class InsertOperation extends Operation {
 
 	public function doValidate() {
+		// We could also just make the code from create_item_validate live in this class,
+		// but it needs to call some protected methods.
 		return $this->controller->create_item_validate( $this->input['id'] ?? null, $this->input );
 	}
 
@@ -182,6 +193,9 @@ class UpdateOperation extends Operation {
 	}
 
 	public function doPersist( $request ) {
+		// @TODO Only persist updated items, not all of them
+		// if ( $raw_menu_item['dirty'] ) {
+		// }
 		return $this->controller->update_item_persist( $this->prepared_item, $this->input, $request );
 	}
 
@@ -193,8 +207,12 @@ class DeleteOperation extends Operation {
 		return $this->controller->delete_item_validate( $this->input['id'], $this->input );
 	}
 
+	/**
+	 * Deleting may fail if menu item was already deleted earlier. Later on we could get
+	 * smarter with classifying the type of the failure, for now let's just fail silently.
+	 */
 	public function doPersist( $request ) {
-		return $this->controller->delete_item_persist( $this->input['id'] );
+		$this->controller->delete_item_persist( $this->input['id'] );
 	}
 
 }
