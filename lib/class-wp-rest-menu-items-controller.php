@@ -12,6 +12,9 @@
  * @see WP_REST_Posts_Controller
  */
 class WP_REST_Menu_Items_Controller extends WP_REST_Posts_Controller {
+
+	protected $cached_menu_items = [];
+
 	/**
 	 * Constructor.
 	 *
@@ -65,25 +68,6 @@ class WP_REST_Menu_Items_Controller extends WP_REST_Posts_Controller {
 		$nav_item = wp_setup_nav_menu_item( $post );
 
 		return $nav_item;
-	}
-
-	protected $all_items = [];
-
-	protected function get_nav_menu_item_cached( $id, $menu_id ) {
-		return $this->get_menu_items($menu_id)[$id];
-	}
-
-	protected function get_menu_items( $menu_id ) {
-		if ( ! $this->all_items[ $menu_id ] ) {
-			$items = wp_get_nav_menu_items( $menu_id, array( 'post_status' => 'publish,draft' ) );
-			$items_by_id = [];
-			foreach ( $items as $item ) {
-				$items_by_id[ $item->ID ] = $item;
-			}
-			$this->all_items[ $menu_id ] = $items_by_id;
-		}
-
-		return $this->all_items[ $menu_id ];
 	}
 
 	/**
@@ -1161,11 +1145,37 @@ class WP_REST_Menu_Items_Controller extends WP_REST_Posts_Controller {
 		}
 
 		$response = new WP_REST_Response();
-		$response->set_data($this->get_menu_items($navigation_id));
+		$response->set_data( $this->get_menu_items( $navigation_id, true ) );
 
 		return $response;
 	}
 
+	protected function get_nav_menu_item_cached( $id, $menu_id ) {
+		return $this->get_menu_items($menu_id)[$id];
+	}
+
+	/**
+	 * Each endpoint fetches all the menu items multiple times. Since the bulk processing
+	 * endpoint reuses most of the regular endpoints logic, it would hit the database even more.
+	 * This caching logic makes it possible to avoid most of those round trips.
+	 *
+	 * @param $menu_id
+	 * @param $refresh
+	 *
+	 * @return mixed
+	 */
+	protected function get_menu_items( $menu_id, $refresh = false ) {
+		if ( ! $this->cached_menu_items[ $menu_id ] || $refresh ) {
+			$items = wp_get_nav_menu_items( $menu_id, array( 'post_status' => 'publish,draft' ) );
+			$items_by_id = [];
+			foreach ( $items as $item ) {
+				$items_by_id[ $item->ID ] = $item;
+			}
+			$this->cached_menu_items[ $menu_id ] = $items_by_id;
+		}
+
+		return $this->cached_menu_items[ $menu_id ];
+	}
 
 }
 
