@@ -1151,20 +1151,18 @@ class WP_REST_Menu_Items_Controller extends WP_REST_Posts_Controller {
 	}
 
 	public function update_hierarchy( $request ) {
+		global $wpdb;
 		$navigation_id = $request['menus'];
+
 		$validated_operations = $this->bulk_validate( $navigation_id, $request['tree'] );
 		if ( is_wp_error( $validated_operations ) ) {
 			return $validated_operations;
 		}
 
-		global $wpdb;
-
 		$wpdb->query( 'START TRANSACTION' );
 		$wpdb->query( 'SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ' );
 
-		list( $inserts, $updates, $deletes ) = $validated_operations;
-
-		$result = $this->bulk_persist($request, $inserts, $updates, $deletes);
+		$result = $this->bulk_persist($request, $validated_operations);
 
 		if ( is_wp_error( $result ) ) {
 			$wpdb->query( 'ROLLBACK' );
@@ -1185,36 +1183,22 @@ class WP_REST_Menu_Items_Controller extends WP_REST_Posts_Controller {
 	}
 
 	protected function bulk_validate( $navigation_id, $input_tree ) {
-		list( $inserts, $updates, $deletes ) = $this->categorize_input( $navigation_id, $input_tree );
+		$operations = $this->diff( $navigation_id, $input_tree );
 
 		$this->ignore_position_collision = true;
-		foreach ( $inserts as $insert ) {
-			$result = $this->create_item_validate( $insert->input['id'] ?? null, $insert->input );
-			if ( is_wp_error( $result ) ) {
-				return $result;
-			}
-			$insert->prepared_item = $result;
-		}
-		foreach ( $updates as  $update ) {
-			$result = $this->update_item_validate( $update->input['id'], $update->input );
-			if ( is_wp_error( $result ) ) {
-				return $result;
-			}
-			$update->prepared_item = $result;
-		}
-		foreach ( $deletes as $delete ) {
-			$result = $this->delete_item_validate( $delete->input['id'], $delete->input );
+		foreach ( $operations as $operation ) {
+			$result = $operation->validate( );
 			if ( is_wp_error( $result ) ) {
 				return $result;
 			}
 		}
 
-		return [ $inserts, $updates, $deletes ];
+		return $operations;
 	}
 
-	protected function categorize_input( $navigation_id, $tree ) {
+	protected function diff( $navigation_id, $tree ) {
 		$current_menu_items = wp_get_nav_menu_items( $navigation_id, array( 'post_status' => 'publish,draft' ) );
-		$inserts = $updates = $deletes = [];
+		$operations = [];
 
 		$stack = [
 			[ null, $tree ],
@@ -1226,15 +1210,16 @@ class WP_REST_Menu_Items_Controller extends WP_REST_Posts_Controller {
 				$children = ! empty( $raw_menu_item['children'] ) ? $raw_menu_item['children'] : [];
 				unset( $raw_menu_item['children'] );
 
-				$operation = new Operation( $raw_menu_item, $parent_operation );
 				if ( ! empty( $raw_menu_item['id'] ) ) {
 					$updated_ids[] = $raw_menu_item['id'];
 					// Only process updated menu items
 //					if ( $raw_menu_item['dirty'] ) {
-					$updates[] = $operation;
+					$operation = new UpdateOperation( $this, $raw_menu_item, $parent_operation );
+					$operations[] = $operation;
 //					}
 				} else {
-					$inserts[] = $operation;
+					$operation = new InsertOperation( $this, $raw_menu_item, $parent_operation );
+					$operations[] = $operation;
 				}
 
 				if ( $children ) {
@@ -1246,42 +1231,18 @@ class WP_REST_Menu_Items_Controller extends WP_REST_Posts_Controller {
 		// Delete any orphaned items
 		foreach ( $current_menu_items as $item ) {
 			if ( ! in_array( $item->ID, $updated_ids ) ) {
-				$deletes[] = new Operation( [ 'menus' => $navigation_id, 'force' => true, 'id' => $item->ID ] );
+				$operations[] = new DeleteOperation( $this, [ 'menus' => $navigation_id, 'force' => true, 'id' => $item->ID ] );
 			}
 		}
 
-		return [ $inserts, $updates, $deletes ];
+		return $operations;
 	}
 
-	protected function bulk_persist( $request, $inserts, $updates, $deletes ) {
+	protected function bulk_persist( $request, $validated_operations ) {
 		$response_data = [];
 
-		foreach ( $inserts as $insert ) {
-			if ( ! empty( $insert->parent ) && $insert->parent->result->ID ) {
-				$insert->prepared_item['menu-item-parent-id'] = $insert->parent->result->ID;
-			}
-			$result = $this->create_item_persist( $insert->prepared_item, $insert->input, $request );
-			if ( is_wp_error( $result ) ) {
-				return $result;
-			}
-			$insert->result = $result;
-			$response_data[] = [ 'ok' ];
-		}
-
-		foreach ( $updates as $update ) {
-			if ( ! empty( $update->parent ) && $update->parent->result->ID ) {
-				$update->prepared_item['menu-item-parent-id'] = $update->parent->result->ID;
-			}
-			$result = $this->update_item_persist( $update->prepared_item, $update->input, $request );
-			if ( is_wp_error( $result ) ) {
-				return $result;
-			}
-			$update->result = $result;
-			$response_data[] = [ 'ok' ];
-		}
-
-		foreach ( $deletes as $delete ) {
-			$result = $this->delete_item_persist( $delete->input['id'] );
+		foreach ( $validated_operations as $operation ) {
+			$result = $operation->persist( $request );
 			if ( is_wp_error( $result ) ) {
 				return $result;
 			}
@@ -1294,8 +1255,14 @@ class WP_REST_Menu_Items_Controller extends WP_REST_Posts_Controller {
 }
 
 
-class Operation {
+abstract class Operation {
+	const INSERT = 'insert';
+	const UPDATE = 'update';
+	const DELETE = 'delete';
+
+	protected $controller;
 	public $input;
+	/** @var Operation */
 	public $parent;
 	public $prepared_item;
 	public $result;
@@ -1307,8 +1274,64 @@ class Operation {
 	 * @param $parent
 	 * @param $result
 	 */
-	public function __construct( $input, $parent=null ) {
+	public function __construct( WP_REST_Menu_Items_Controller $controller, $input, $parent=null ) {
+		$this->controller = $controller;
 		$this->input = $input;
 		$this->parent = $parent;
 	}
+
+	public function validate() {
+		$result = $this->doValidate();
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		$this->prepared_item = $result;
+
+		return $result;
+	}
+
+	abstract protected function doValidate();
+	abstract protected function persist($request);
+}
+
+class InsertOperation extends Operation {
+
+	public function doValidate( ) {
+		return $this->controller->create_item_validate( $this->input['id'] ?? null, $this->input);
+	}
+
+	public function persist( $request ) {
+		if ( ! empty( $this->parent ) && $this->parent->result->ID ) {
+			$this->prepared_item['menu-item-parent-id'] = $this->parent->result->ID;
+		}
+		return $this->controller->create_item_persist( $this->prepared_item, $this->input, $request );
+	}
+
+}
+
+class UpdateOperation extends Operation {
+
+	public function doValidate( ) {
+		return $this->controller->update_item_validate( $this->input['id'], $this->input);
+	}
+
+	public function persist( $request ) {
+		if ( ! empty( $this->parent ) && $this->parent->result->ID ) {
+			$this->prepared_item['menu-item-parent-id'] = $this->parent->result->ID;
+		}
+		return $this->controller->update_item_persist( $this->prepared_item, $this->input, $request );
+	}
+
+}
+
+class DeleteOperation extends Operation {
+
+	public function doValidate( ) {
+		return $this->controller->delete_item_validate( $this->input['id'], $this->input);
+	}
+
+	public function persist( $request ) {
+		return $this->controller->delete_item_persist( $this->input['id'] );
+	}
+
 }
