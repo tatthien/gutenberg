@@ -71,21 +71,25 @@ export default function TemplateSwitcher( {
 			const { getCurrentTheme, getEntityRecords } = select( 'core' );
 			return {
 				currentTheme: getCurrentTheme(),
-				templates: getEntityRecords( 'postType', 'wp_template' )?.map(
-					( template ) => ( {
-						label: (
-							<TemplateLabel
-								template={ template }
-								homeId={ homeId }
-							/>
-						),
-						value: template.id,
-						slug: template.slug,
-					} )
-				),
+				templates: getEntityRecords( 'postType', 'wp_template', {
+					resolved: true,
+				} )?.map( ( template ) => ( {
+					label: (
+						<TemplateLabel
+							template={ template }
+							homeId={ homeId }
+						/>
+					),
+					value: template.id,
+					slug: template.slug,
+				} ) ),
 				templateParts: getEntityRecords(
 					'postType',
-					'wp_template_part'
+					'wp_template_part',
+					{
+						status: [ 'publish', 'auto-draft' ],
+						theme: getCurrentTheme()?.stylesheet,
+					}
 				)?.map( ( templatePart ) => ( {
 					label: <TemplateLabel template={ templatePart } />,
 					value: templatePart.id,
