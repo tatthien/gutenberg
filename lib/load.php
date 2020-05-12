@@ -86,4 +86,5 @@ require dirname( __FILE__ ) . '/navigation-page.php';
 require dirname( __FILE__ ) . '/experiments-page.php';
 require dirname( __FILE__ ) . '/customizer.php';
 require dirname( __FILE__ ) . '/edit-site-page.php';
+require dirname( __FILE__ ) . '/theme.php';
 require dirname( __FILE__ ) . '/global-styles.php';

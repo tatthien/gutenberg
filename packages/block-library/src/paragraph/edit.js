@@ -57,7 +57,7 @@ function ParagraphRTLToolbar( { direction, setDirection } ) {
 }
 
 function useDropCap( isDropCap, fontSize, styleFontSize ) {
-	const isDisabled = useEditorFeature( '__experimentalDisableDropCap' );
+	const isDisabled = ! useEditorFeature( 'typography.dropCapEnabled' );
 
 	const [ minimumHeight, setMinimumHeight ] = useState();
 

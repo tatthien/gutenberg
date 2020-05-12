@@ -47,21 +47,11 @@ function gutenberg_experimental_global_styles_get_css_vars( $global_styles, $pre
  * Returns an array containing the Global Styles
  * found in a file, or a void array if none found.
  *
- * @param string $global_styles_path Path to file.
+ * @param string $config_path Path to the theme config file.
  * @return array Global Styles tree.
  */
-function gutenberg_experimental_global_styles_get_from_file( $global_styles_path ) {
-	$global_styles = array();
-	if ( file_exists( $global_styles_path ) ) {
-		$decoded_file = json_decode(
-			file_get_contents( $global_styles_path ),
-			true
-		);
-		if ( is_array( $decoded_file ) ) {
-			$global_styles = $decoded_file;
-		}
-	}
-	return $global_styles;
+function gutenberg_experimental_global_styles_get_from_file( $config_path ) {
+	return gutenberg_experimental_get_theme_config( $config_path, 'global' );
 }
 
 /**
@@ -148,7 +138,7 @@ function gutenberg_experimental_global_styles_get_user_cpt_id() {
  */
 function gutenberg_experimental_global_styles_get_core() {
 	return gutenberg_experimental_global_styles_get_from_file(
-		dirname( dirname( __FILE__ ) ) . '/experimental-default-global-styles.json'
+		dirname( dirname( __FILE__ ) ) . '/experimental-default-theme.json'
 	);
 }
 

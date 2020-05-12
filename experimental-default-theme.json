@@ -1,0 +1,23 @@
+{
+	"global": {
+		"color": {
+			"primary": "#52accc",
+			"background": "white",
+			"text": "black"
+		}
+	},
+	"features": {
+		"typography": {
+			"dropCapEnabled": false
+		}
+	},
+	"blocks": {
+		"core/paragraph": {
+			"features": {
+				"typography": {
+					"dropCapEnabled": true
+				}
+			}
+		}
+	}
+}
