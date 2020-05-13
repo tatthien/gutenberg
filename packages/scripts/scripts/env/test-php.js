@@ -1,39 +1,21 @@
 /**
  * Node dependencies.
  */
-const path = require( 'path' );
+const { execSync } = require( 'child_process' );
 const { env } = require( 'process' );
-
-/**
- * WordPress dependencies.
- */
-const wpEnv = require( '@wordpress/env' );
 
 /**
  * Internal dependencies
  */
 const { getArgsFromCLI } = require( '../../utils' );
 
-const args = getArgsFromCLI().join( ' ' );
+const args = getArgsFromCLI();
 
-// Default to CWD basename for the plugin to run.
-const pluginDir =
-	env.npm_package_wp_env_plugin_dir || path.basename( process.cwd() );
-const localDir = env.LOCAL_DIR || 'html';
+const localDir = env.LOCAL_DIR || 'src';
 
-// Executes phpunit in the Docker Service.
-wpEnv
-	.run( {
-		container: 'phpunit',
-		command: [
-			`phpunit -c /var/www/${ localDir }/wp-content/plugins/${ pluginDir }/phpunit.xml.dist ${ args }`,
-		],
-		spinner: {},
-	} )
-	// eslint-disable-next-line no-console
-	.then( console.log )
-	.catch( ( { err } ) => {
-		// eslint-disable-next-line no-console
-		console.error( err );
-		process.exit( 1 );
-	} );
+// Run PHPUnit with the working directory set correctly.
+execSync(
+	`npm run test:php -- -c /var/www/${ localDir }/wp-content/plugins/${ env.npm_package_wp_env_plugin_dir }/phpunit.xml.dist ` +
+		args.join( ' ' ),
+	{ cwd: env.WP_DEVELOP_DIR, stdio: 'inherit' }
+);
