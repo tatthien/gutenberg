@@ -110,6 +110,13 @@ module.exports = function cli() {
 		withSpinner( env.clean )
 	);
 	yargs.command(
+		'phpunit',
+		wpGreen(
+			'Runs phpunit tests using the set phpunit config file. Uses $cwd/phpunit.xml.dist if it exists. Otherwise, uses the value defined in .wp-env.json.'
+		),
+		withSpinner( env.phpunit )
+	);
+	yargs.command(
 		'run <container> [command..]',
 		"Runs an arbitrary command in one of the underlying Docker containers, for example it's useful for running wp cli commands.",
 		( args ) => {

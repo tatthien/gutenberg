@@ -2,7 +2,7 @@
 /**
  * External dependencies
  */
-const fs = require( 'fs' ).promises;
+const { promises: fs, constants: fsConstants } = require( 'fs' );
 const path = require( 'path' );
 const os = require( 'os' );
 const crypto = require( 'crypto' );
@@ -39,6 +39,7 @@ const HOME_PATH_PREFIX = `~${ path.sep }`;
  * @property {number}      testsPort               The port on which to start the testing WordPress environment.
  * @property {Object}      config                  Mapping of wp-config.php constants to their desired values.
  * @property {Object.<string, Source>} mappings    Mapping of WordPress directories to local directories which should be mounted.
+ * @property {string|null} phpunitConfigPath       Path to the phpunit config file. If null, no phpunit config exists.
  * @property {boolean}     debug                   True if debug mode is enabled.
  */
 
@@ -135,9 +136,15 @@ module.exports = {
 					WP_PHP_BINARY: 'php',
 				},
 				mappings: {},
+				phpunitConfigPath: null,
 			},
 			config,
 			overrideConfig
+		);
+
+		config.phpunitConfigPath = await getAbsolutePath(
+			config.phpunitConfigPath,
+			'phpunit.xml.dist'
 		);
 
 		config.port = getNumberFromEnvVariable( 'WP_ENV_PORT' ) || config.port;
@@ -248,9 +255,37 @@ module.exports = {
 				},
 				{}
 			),
+			phpunitConfigPath: config.phpunitConfigPath,
 		};
 	},
 };
+
+async function getAbsolutePath( relativePath, fallback ) {
+	// First, see if there is a specified path we can get.
+	if ( relativePath !== null ) {
+		if ( typeof relativePath !== 'string' ) {
+			throw new ValidationError(
+				'Invalid .wp-env.json: "phpunitConfigPath" must be a string if defined.'
+			);
+		}
+		try {
+			const fullPath = path.resolve( relativePath );
+			await fs.access( fullPath, fsConstants.R_OK );
+			return fullPath;
+		} catch {
+			throw new ValidationError(
+				'Invalid .wp-env.json: specified phpunit config not found.'
+			);
+		}
+	} else {
+		try {
+			const fullPath = path.resolve( fallback );
+			await fs.access( fullPath, fsConstants.R_OK );
+			return fullPath;
+		} catch {}
+	}
+	return null;
+}
 
 /**
  * Parses a source string into a source object.
